@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify, render_template, url_for, redirect
 from flask_cors import CORS
 from fcfs import fcfs
@@ -7,7 +8,17 @@ from priority import priority
 from round_robin import round_robin
 from sjf import sjf
 from suggestions import suggest_best_algorithm
-app = Flask(__name__)
+
+# Calculate absolute base path
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+# Configure Flask app with absolute paths
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, 'frontend', 'templates'),
+    static_folder=os.path.join(BASE_DIR, 'frontend', 'static')
+)
+
 CORS(app)
 
 # In-memory process list
@@ -77,7 +88,6 @@ def recommended_page():
 
 # ----- API Routes -----
 
-
 @app.route('/api/<algo>', methods=['POST'])
 def schedule(algo):
     data = request.get_json()
@@ -100,10 +110,6 @@ def schedule(algo):
         return jsonify(round_robin(processes, quantum))
     else:
         return jsonify({"error": "Unsupported algorithm"}), 400
-
-@app.route('/')
-def index():
-    return render_template('Recommended.html')
 
 @app.route('/get_processes')
 def get_processes():
@@ -134,13 +140,13 @@ def reset():
 
 @app.route('/predict-algorithm', methods=['POST'])
 def predict_algorithm():
-    data       = request.get_json()
-    proc_list  = data.get('processes', [])
-    quantum    = data.get('quantum')           # ← NEW
+    data = request.get_json()
+    proc_list = data.get('processes', [])
+    quantum = data.get('quantum')
     algo, reason = suggest_best_algorithm(proc_list, quantum)
     return jsonify({
         "algorithm": algo.upper(),
-        "reason"   : reason
+        "reason": reason
     })
 
 if __name__ == '__main__':
